@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>기술정보 관리</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .modal-backdrop { backdrop-filter: blur(2px); }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <!-- 헤더 -->
+  <div class="bg-white border-b border-gray-200 px-6 py-4">
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl font-bold text-gray-900">기술정보 관리</h1>
+      <div class="text-sm text-gray-500">HOME &gt; 관리자 &gt; 기술정보관리 &gt; <span class="font-medium text-gray-900">기술정보</span></div>
+    </div>
+  </div>
+
+  <!-- 메인 콘텐츠 -->
+  <div class="px-6 py-6" style="height: calc(100vh - 145px); overflow-y: auto;">
+    <!-- 자재 검색 -->
+    <div class="bg-white rounded-lg border border-gray-200 p-5 mb-6">
+      <h2 class="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <span class="w-1 h-4 bg-blue-500 rounded"></span>자재 검색
+      </h2>
+      <div class="flex gap-3 items-end">
+        <div class="flex-1">
+          <label class="block text-sm text-gray-600 mb-1">자재코드</label>
+          <div class="flex gap-2">
+            <input
+              type="text"
+              id="selectedMaterialDisplay"
+              readonly
+              placeholder="자재를 선택하세요"
+              class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm bg-gray-50"
+            />
+            <button
+              onclick="openMaterialSearchPopup()"
+              class="px-4 py-2 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
+            >
+              검색
+            </button>
+          </div>
+        </div>
+        <button
+          id="copyToBtn"
+          onclick="openCopyPopup()"
+          disabled
+          class="px-4 py-2 border border-gray-200 text-gray-400 rounded text-sm font-medium"
+        >
+          복사 To
+        </button>
+      </div>
+    </div>
+
+    <!-- 기본 정보 (초기 숨김) -->
+    <div id="basicInfoSection" class="hidden bg-white rounded-lg border border-gray-200 p-5 mb-6">
+      <h2 class="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <span class="w-1 h-4 bg-green-500 rounded"></span>기본 정보
+      </h2>
+      <div class="grid grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">자재코드</label>
+          <input type="text" id="materialCode" readonly class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-gray-50" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">자재명</label>
+          <input type="text" id="materialNameDisplay" readonly class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-gray-50" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">자재설명</label>
+          <input type="text" id="materialDescription" placeholder="자재설명 입력" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 정보 분류 목록 (초기 숨김) -->
+    <div id="infoListSection" class="hidden bg-white rounded-lg border border-gray-200 p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-gray-800 flex items-center gap-2">
+          <span class="w-1 h-4 bg-purple-500 rounded"></span>정보 분류 목록 (<span id="infoListCount">1</span>)
+        </h2>
+        <div class="flex gap-2">
+          <button onclick="addRow()" class="px-3 py-1.5 border border-blue-500 text-blue-500 rounded text-xs font-medium hover:bg-blue-50">
+            행추가
+          </button>
+          <button
+            id="deleteRowBtn"
+            onclick="deleteRows()"
+            disabled
+            class="px-3 py-1.5 border border-gray-300 text-gray-400 rounded text-xs font-medium"
+          >
+            행삭제
+          </button>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="w-10 py-3 px-3 border-b border-gray-200">
+                <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" class="w-4 h-4 rounded" />
+              </th>
+              <th class="py-3 px-3 text-left text-gray-600 border-b w-48">정보분류</th>
+              <th class="py-3 px-3 text-left text-gray-600 border-b">설명</th>
+              <th class="py-3 px-3 text-left text-gray-600 border-b w-40">이미지</th>
+              <th class="py-3 px-3 text-left text-gray-600 border-b w-48">정보연결</th>
+            </tr>
+          </thead>
+          <tbody id="infoTableBody">
+            <!-- 동적 생성 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 빈 상태 (초기 표시) -->
+    <div id="emptyState" class="flex items-center justify-center h-64 text-gray-400">
+      <div class="text-center">
+        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <p class="text-sm">자재를 검색하여 선택하세요</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 하단 버튼 -->
+  <div class="bg-white border-t border-gray-200 px-6 py-4">
+    <div class="flex items-center justify-between">
+      <button class="px-4 py-2 border border-red-500 text-red-500 rounded text-sm font-medium hover:bg-red-50">삭제</button>
+      <div class="flex gap-2">
+        <button onclick="resetForm()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50">초기화</button>
+        <button onclick="saveData()" class="px-6 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 자재 검색 팝업 -->
+  <div id="materialSearchPopup" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 modal-backdrop">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
+      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between shrink-0">
+        <h3 class="font-bold text-gray-800">자재 검색</h3>
+        <button onclick="closeMaterialSearchPopup()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+      </div>
+      
+      <div class="p-6 space-y-4 shrink-0">
+        <!-- 검색 -->
+        <div class="flex gap-3 items-end">
+          <div class="flex-1">
+            <label class="block text-sm text-gray-600 mb-1">자재명</label>
+            <input
+              type="text"
+              id="materialSearchInput"
+              placeholder="자재명 또는 품번 검색..."
+              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button 
+            onclick="searchMaterials()"
+            class="px-4 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600"
+          >
+            조회
+          </button>
+        </div>
+
+        <!-- 필터 -->
+        <div class="grid grid-cols-4 gap-3">
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">대분류</label>
+            <select id="materialMajorCategory" onchange="searchMaterials()" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+              <option value="">선택하세요.</option>
+              <option value="PDP TV">PDP TV</option>
+              <option value="MINI PC">MINI PC</option>
+              <option value="HTPC">HTPC</option>
+              <option value="태블릿PC">태블릿PC</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">분류</label>
+            <select class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+              <option value="">선택하세요.</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">대그룹</label>
+            <select class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+              <option value="">선택하세요.</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">그룹</label>
+            <select class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+              <option value="">선택하세요.</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 테이블 -->
+      <div class="flex-1 overflow-hidden px-6">
+        <div class="border border-gray-200 rounded overflow-hidden h-full flex flex-col">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="py-2 px-3 text-left text-gray-600 border-b w-28">품명</th>
+                <th class="py-2 px-3 text-left text-gray-600 border-b w-40">품번</th>
+                <th class="py-2 px-3 text-left text-gray-600 border-b">설명</th>
+              </tr>
+            </thead>
+          </table>
+          <div class="flex-1 overflow-y-auto">
+            <table class="w-full text-sm">
+              <tbody id="materialTableBody">
+                <!-- 동적 생성 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 하단 -->
+      <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4">
+          <div id="materialPagination" class="flex items-center gap-1">
+            <!-- 동적 생성 -->
+          </div>
+          <span class="text-sm text-gray-500">총 <span id="materialTotalCount">0</span>건</span>
+        </div>
+        <div class="flex gap-2">
+          <button
+            onclick="closeMaterialSearchPopup()"
+            class="px-4 py-2 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
+          >
+            취소
+          </button>
+          <button
+            id="materialSelectBtn"
+            onclick="selectMaterial()"
+            disabled
+            class="px-6 py-2 bg-gray-300 text-gray-500 rounded text-sm font-medium"
+          >
+            선택
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 복사 To 팝업 -->
+  <div id="copyPopup" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 modal-backdrop">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
+      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between shrink-0">
+        <h3 class="font-bold text-gray-800">복사 대상 자재 선택</h3>
+        <button onclick="closeCopyPopup()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+      </div>
+      
+      <div class="p-6 space-y-4 shrink-0">
+        <!-- 검색 -->
+        <div class="flex gap-3 items-end">
+          <div class="flex-1">
+            <label class="block text-sm text-gray-600 mb-1">자재명</label>
+            <input
+              type="text"
+              id="copySearchInput"
+              placeholder="자재명 또는 품번 검색..."
+              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button 
+            onclick="searchCopyTargets()"
+            class="px-4 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600"
+          >
+            조회
+          </button>
+        </div>
+
+        <!-- 필터 -->
+        <div class="grid grid-cols-4 gap-3">
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">대분류</label>
+            <select id="copyMajorCategory" onchange="searchCopyTargets()" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+              <option value="">선택하세요.</option>
+              <option value="PDP TV">PDP TV</option>
+              <option value="MINI PC">MINI PC</option>
+              <option value="HTPC">HTPC</option>
+              <option value="태블릿PC">태블릿PC</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">분류</label>
+            <select class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+              <option value="">선택하세요.</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">대그룹</label>
+            <select class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+              <option value="">선택하세요.</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">그룹</label>
+            <select class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+              <option value="">선택하세요.</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 테이블 -->
+      <div class="flex-1 overflow-hidden px-6">
+        <div class="border border-gray-200 rounded overflow-hidden h-full flex flex-col">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="py-2 px-3 text-left text-gray-600 border-b w-28">품명</th>
+                <th class="py-2 px-3 text-left text-gray-600 border-b w-40">품번</th>
+                <th class="py-2 px-3 text-left text-gray-600 border-b">설명</th>
+              </tr>
+            </thead>
+          </table>
+          <div class="flex-1 overflow-y-auto">
+            <table class="w-full text-sm">
+              <tbody id="copyTableBody">
+                <!-- 동적 생성 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 하단 -->
+      <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4">
+          <div id="copyPagination" class="flex items-center gap-1">
+            <!-- 동적 생성 -->
+          </div>
+          <span class="text-sm text-gray-500">총 <span id="copyTotalCount">0</span>건</span>
+        </div>
+        <div class="flex gap-2">
+          <button
+            onclick="closeCopyPopup()"
+            class="px-4 py-2 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
+          >
+            취소
+          </button>
+          <button
+            id="copyConfirmBtn"
+            onclick="executeCopy()"
+            disabled
+            class="px-6 py-2 bg-gray-300 text-gray-500 rounded text-sm font-medium"
+          >
+            복사
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 정보분류 드롭다운 (동적 위치) -->
+  <div id="categoryDropdown" class="hidden fixed bg-white border border-gray-200 rounded shadow-lg z-20 max-h-48 overflow-y-auto" style="width: 250px;">
+    <!-- 동적 생성 -->
+  </div>
+
+  <script>
+    // 전역 상태
+    const state = {
+      selectedMaterial: null,
+      infoList: [],
+      selectedRows: [],
+      materialList: [
+        { code: 'SSN3000001', name: '단일자재', description: '삼성 ST10-5B241/180', category: 'PDP TV' },
+        { code: 'TE12-A0114010091', name: '내부케이블', description: 'HAIER : Connection Wire (LCD Panel-Mainboard) (32LEU1FB,LE32T1F)', category: 'PDP TV' },
+        { code: '854-090187-A', name: '메인보드', description: 'J2I (VERSA Aptitude Main B/D), Intel 440ZX-M Chipset', category: 'PDP TV' },
+        { code: '0089D49', name: '모듈', description: 'NOKIA:ASSY TOUCH:X6', category: 'PDP TV' },
+        { code: '0089W21', name: 'Touch Panel', description: 'CARE A-COVER TOUCH WINDOW ASSY BLACK', category: 'PDP TV' },
+        { code: '0089W23', name: 'Touch Panel', description: 'CARE A-COVER TOUCH WINDOW ASSY WHITE', category: 'PDP TV' },
+        { code: '00KVX', name: '본체', description: 'Portege R150 (PP160K-00KVX)', category: 'MINI PC' },
+        { code: '00N3622', name: 'CPU', description: 'Pentium III 667 MHz', category: 'MINI PC' },
+        { code: '00N7685', name: '전원공급기', description: '155W power supply', category: 'MINI PC' },
+        { code: '00N7687', name: '전원공급기', description: '155W power supply (Japan and EMEA)', category: 'MINI PC' },
+        { code: '00N7955', name: 'CD-RW', description: 'CD-RW drive/ 옵션', category: 'HTPC' },
+        { code: '00N8117', name: '랜', description: 'LAN/MODEM CARD : Mini PCI Modem,10/100 Lan Card combo card (3COM)', category: 'HTPC' },
+        { code: '00N8244', name: 'CD-ROM', description: '@N9VEM : INVERTER LCD 14.1 TFT 05/11/28', category: 'HTPC' },
+        { code: 'MAT-001', name: '메인보드 A타입', description: '고성능 메인보드', category: '태블릿PC' },
+        { code: 'MAT-002', name: '메인보드 B타입', description: '보급형 메인보드', category: '태블릿PC' },
+        { code: 'MAT-003', name: 'CPU 쿨러', description: '저소음 쿨러', category: '태블릿PC' },
+      ],
+      categoryList: [
+        { code: '017001', name: '기본정보' },
+        { code: '017040', name: 'CMOS SETUP' },
+        { code: '017043', name: '다운로드' },
+        { code: '017235', name: '전자매뉴얼(Win10)' },
+        { code: '017196', name: '전자매뉴얼(XP)' },
+        { code: '017230', name: '전자매뉴얼' },
+        { code: '017186', name: '전자매뉴얼(Vista)' },
+        { code: '017199', name: '전자매뉴얼(Win7)' },
+        { code: '017184', name: '전자매뉴얼(HE)' },
+        { code: '017185', name: '전자매뉴얼(MCE)' },
+        { code: '017211', name: '전자매뉴얼(Win8)' },
+        { code: '017227', name: '기술참고가이드(RevB)' },
+        { code: '017228', name: '기술참고가이드(RevC)' },
+        { code: '017229', name: '기술참고가이드' },
+        { code: '017213', name: '사용안내가이드' },
+      ],
+      materialPopup: {
+        page: 1,
+        filtered: [],
+        selected: null
+      },
+      copyPopup: {
+        page: 1,
+        filtered: [],
+        selected: null
+      },
+      categoryDropdown: {
+        rowId: null,
+        search: ''
+      }
+    };
+
+    const ITEMS_PER_PAGE = 10;
+
+    // 초기화
+    function init() {
+      addRow();
+    }
+
+    // 자재 검색 팝업 열기
+    function openMaterialSearchPopup() {
+      state.materialPopup.page = 1;
+      state.materialPopup.selected = null;
+      document.getElementById('materialSearchInput').value = '';
+      document.getElementById('materialMajorCategory').value = '';
+      searchMaterials();
+      document.getElementById('materialSearchPopup').classList.remove('hidden');
+    }
+
+    function closeMaterialSearchPopup() {
+      document.getElementById('materialSearchPopup').classList.add('hidden');
+    }
+
+    // 자재 검색
+    function searchMaterials() {
+      const search = document.getElementById('materialSearchInput').value.toLowerCase();
+      const category = document.getElementById('materialMajorCategory').value;
+
+      state.materialPopup.filtered = state.materialList.filter(m => {
+        const matchSearch = !search || 
+          m.code.toLowerCase().includes(search) ||
+          m.name.toLowerCase().includes(search) ||
+          m.description.toLowerCase().includes(search);
+        const matchCategory = !category || m.category === category;
+        return matchSearch && matchCategory;
+      });
+
+      state.materialPopup.page = 1;
+      renderMaterialTable();
+    }
+
+    function renderMaterialTable() {
+      const tbody = document.getElementById('materialTableBody');
+      const totalPages = Math.ceil(state.materialPopup.filtered.length / ITEMS_PER_PAGE);
+      const start = (state.materialPopup.page - 1) * ITEMS_PER_PAGE;
+      const end = start + ITEMS_PER_PAGE;
+      const paginated = state.materialPopup.filtered.slice(start, end);
+
+      if (paginated.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-400">검색 결과가 없습니다</td></tr>';
+      } else {
+        tbody.innerHTML = paginated.map(m => `
+          <tr
+            onclick="selectMaterialRow('${m.code}')"
+            ondblclick="selectMaterialRow('${m.code}'); selectMaterial();"
+            class="border-b border-gray-100 cursor-pointer transition-colors ${
+              state.materialPopup.selected?.code === m.code ? 'bg-blue-50' : 'hover:bg-gray-50'
+            }"
+          >
+            <td class="py-2 px-3 w-28">${m.name}</td>
+            <td class="py-2 px-3 w-40 font-mono text-xs">${m.code}</td>
+            <td class="py-2 px-3 text-gray-600 truncate max-w-xs" title="${m.description}">${m.description}</td>
+          </tr>
+        `).join('');
+      }
+
+      document.getElementById('materialTotalCount').textContent = state.materialPopup.filtered.length;
+      renderPagination('materialPagination', state.materialPopup.page, totalPages, (p) => {
+        state.materialPopup.page = p;
+        renderMaterialTable();
+      });
+
+      updateMaterialSelectBtn();
+    }
+
+    function selectMaterialRow(code) {
+      state.materialPopup.selected = state.materialList.find(m => m.code === code);
+      renderMaterialTable();
+    }
+
+    function updateMaterialSelectBtn() {
+      const btn = document.getElementById('materialSelectBtn');
+      if (state.materialPopup.selected) {
+        btn.disabled = false;
+        btn.className = 'px-6 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600';
+      } else {
+        btn.disabled = true;
+        btn.className = 'px-6 py-2 bg-gray-300 text-gray-500 rounded text-sm font-medium';
+      }
+    }
+
+    function selectMaterial() {
+      if (!state.materialPopup.selected) return;
+
+      state.selectedMaterial = state.materialPopup.selected;
+      document.getElementById('selectedMaterialDisplay').value = `${state.selectedMaterial.code} - ${state.selectedMaterial.name}`;
+      document.getElementById('materialCode').value = state.selectedMaterial.code;
+      document.getElementById('materialNameDisplay').value = state.selectedMaterial.name;
+      document.getElementById('materialDescription').value = state.selectedMaterial.description;
+
+      // UI 업데이트
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('basicInfoSection').classList.remove('hidden');
+      document.getElementById('infoListSection').classList.remove('hidden');
+
+      // 복사 To 버튼 활성화
+      const copyBtn = document.getElementById('copyToBtn');
+      copyBtn.disabled = false;
+      copyBtn.className = 'px-4 py-2 border border-blue-500 text-blue-500 rounded text-sm font-medium hover:bg-blue-50';
+
+      closeMaterialSearchPopup();
+    }
+
+    // 복사 팝업
+    function openCopyPopup() {
+      if (!state.selectedMaterial) return;
+      state.copyPopup.page = 1;
+      state.copyPopup.selected = null;
+      document.getElementById('copySearchInput').value = '';
+      document.getElementById('copyMajorCategory').value = '';
+      searchCopyTargets();
+      document.getElementById('copyPopup').classList.remove('hidden');
+    }
+
+    function closeCopyPopup() {
+      document.getElementById('copyPopup').classList.add('hidden');
+    }
+
+    function searchCopyTargets() {
+      const search = document.getElementById('copySearchInput').value.toLowerCase();
+      const category = document.getElementById('copyMajorCategory').value;
+
+      state.copyPopup.filtered = state.materialList.filter(m => {
+        const matchSearch = !search || 
+          m.code.toLowerCase().includes(search) ||
+          m.name.toLowerCase().includes(search) ||
+          m.description.toLowerCase().includes(search);
+        const matchCategory = !category || m.category === category;
+        return matchSearch && matchCategory;
+      });
+
+      state.copyPopup.page = 1;
+      renderCopyTable();
+    }
+
+    function renderCopyTable() {
+      const tbody = document.getElementById('copyTableBody');
+      const totalPages = Math.ceil(state.copyPopup.filtered.length / ITEMS_PER_PAGE);
+      const start = (state.copyPopup.page - 1) * ITEMS_PER_PAGE;
+      const end = start + ITEMS_PER_PAGE;
+      const paginated = state.copyPopup.filtered.slice(start, end);
+
+      if (paginated.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-400">검색 결과가 없습니다</td></tr>';
+      } else {
+        tbody.innerHTML = paginated.map(m => `
+          <tr
+            onclick="selectCopyRow('${m.code}')"
+            ondblclick="selectCopyRow('${m.code}'); executeCopy();"
+            class="border-b border-gray-100 cursor-pointer transition-colors ${
+              state.copyPopup.selected?.code === m.code ? 'bg-blue-50' : 'hover:bg-gray-50'
+            }"
+          >
+            <td class="py-2 px-3 w-28">${m.name}</td>
+            <td class="py-2 px-3 w-40 font-mono text-xs">${m.code}</td>
+            <td class="py-2 px-3 text-gray-600 truncate max-w-xs" title="${m.description}">${m.description}</td>
+          </tr>
+        `).join('');
+      }
+
+      document.getElementById('copyTotalCount').textContent = state.copyPopup.filtered.length;
+      renderPagination('copyPagination', state.copyPopup.page, totalPages, (p) => {
+        state.copyPopup.page = p;
+        renderCopyTable();
+      });
+
+      updateCopyConfirmBtn();
+    }
+
+    function selectCopyRow(code) {
+      state.copyPopup.selected = state.materialList.find(m => m.code === code);
+      renderCopyTable();
+    }
+
+    function updateCopyConfirmBtn() {
+      const btn = document.getElementById('copyConfirmBtn');
+      if (state.copyPopup.selected) {
+        btn.disabled = false;
+        btn.className = 'px-6 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600';
+      } else {
+        btn.disabled = true;
+        btn.className = 'px-6 py-2 bg-gray-300 text-gray-500 rounded text-sm font-medium';
+      }
+    }
+
+    function executeCopy() {
+      if (!state.copyPopup.selected) return;
+      alert(`"${state.selectedMaterial.name}" 기술정보가 "${state.copyPopup.selected.name}"(으)로 복사되었습니다.`);
+      closeCopyPopup();
+    }
+
+    // 페이지네이션 렌더링
+    function renderPagination(elementId, currentPage, totalPages, onChange) {
+      const container = document.getElementById(elementId);
+      if (totalPages <= 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const start = Math.max(1, currentPage - 2);
+      const end = Math.min(totalPages, currentPage + 2);
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      container.innerHTML = `
+        <button
+          onclick="(${onChange})(1)"
+          ${currentPage === 1 ? 'disabled' : ''}
+          class="px-2 py-1 text-xs rounded ${currentPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}"
+        >&laquo;</button>
+        <button
+          onclick="(${onChange})(${Math.max(1, currentPage - 1)})"
+          ${currentPage === 1 ? 'disabled' : ''}
+          class="px-2 py-1 text-xs rounded ${currentPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}"
+        >&lt;</button>
+        ${pages.map(p => `
+          <button
+            onclick="(${onChange})(${p})"
+            class="px-2 py-1 text-xs rounded ${p === currentPage ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-100'}"
+          >${p}</button>
+        `).join('')}
+        <button
+          onclick="(${onChange})(${Math.min(totalPages, currentPage + 1)})"
+          ${currentPage === totalPages ? 'disabled' : ''}
+          class="px-2 py-1 text-xs rounded ${currentPage === totalPages ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}"
+        >&gt;</button>
+        <button
+          onclick="(${onChange})(${totalPages})"
+          ${currentPage === totalPages ? 'disabled' : ''}
+          class="px-2 py-1 text-xs rounded ${currentPage === totalPages ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}"
+        >&raquo;</button>
+      `;
+    }
+
+    // 정보 분류 관리
+    function addRow() {
+      state.infoList.push({
+        id: Date.now(),
+        categoryCode: '',
+        categoryName: '',
+        description: '',
+        image: null,
+        imageName: '',
+        infoLink: ''
+      });
+      renderInfoTable();
+    }
+
+    function deleteRows() {
+      if (state.selectedRows.length === 0) return;
+      state.infoList = state.infoList.filter(item => !state.selectedRows.includes(item.id));
+      state.selectedRows = [];
+      renderInfoTable();
+    }
+
+    function toggleSelectAll() {
+      const checkbox = document.getElementById('selectAllCheckbox');
+      if (checkbox.checked) {
+        state.selectedRows = state.infoList.map(item => item.id);
+      } else {
+        state.selectedRows = [];
+      }
+      renderInfoTable();
+    }
+
+    function toggleRowSelect(id) {
+      if (state.selectedRows.includes(id)) {
+        state.selectedRows = state.selectedRows.filter(i => i !== id);
+      } else {
+        state.selectedRows.push(id);
+      }
+      renderInfoTable();
+    }
+
+    function renderInfoTable() {
+      const tbody = document.getElementById('infoTableBody');
+      document.getElementById('infoListCount').textContent = state.infoList.length;
+
+      tbody.innerHTML = state.infoList.map(item => `
+        <tr class="border-b border-gray-100 hover:bg-gray-50">
+          <td class="py-3 px-3 text-center align-top">
+            <input
+              type="checkbox"
+              ${state.selectedRows.includes(item.id) ? 'checked' : ''}
+              onchange="toggleRowSelect(${item.id})"
+              class="w-4 h-4 rounded"
+            />
+          </td>
+          <td class="py-3 px-3 align-top">
+            <div class="relative">
+              <input
+                type="text"
+                id="category-${item.id}"
+                value="${item.categoryName}"
+                oninput="onCategorySearch(${item.id}, this.value)"
+                onfocus="showCategoryDropdown(${item.id}, this)"
+                placeholder="분류 검색..."
+                class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm pr-8"
+                autocomplete="off"
+              />
+              <svg class="w-4 h-4 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            ${item.categoryCode ? `<p class="text-xs text-gray-400 mt-1">코드: ${item.categoryCode}</p>` : ''}
+          </td>
+          <td class="py-3 px-3 align-top">
+            <textarea
+              value="${item.description}"
+              oninput="updateDescription(${item.id}, this.value)"
+              placeholder="설명을 입력하세요..."
+              rows="3"
+              class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm resize-none focus:ring-2 focus:ring-blue-500"
+            >${item.description}</textarea>
+          </td>
+          <td class="py-3 px-3 align-top">
+            ${item.image ? `
+              <div class="space-y-2">
+                <div class="w-20 h-20 border border-gray-200 rounded overflow-hidden bg-gray-50">
+                  <img src="${item.image}" alt="업로드 이미지" class="w-full h-full object-cover" />
+                </div>
+                <p class="text-xs text-gray-500 truncate w-32" title="${item.imageName}">${item.imageName}</p>
+                <button onclick="deleteImage(${item.id})" class="text-xs text-red-500 hover:text-red-600">삭제</button>
+              </div>
+            ` : `
+              <label class="flex flex-col items-center justify-center w-20 h-20 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4" />
+                </svg>
+                <span class="text-xs text-gray-400 mt-1">업로드</span>
+                <input type="file" accept="image/*" onchange="uploadImage(${item.id}, this)" class="hidden" />
+              </label>
+            `}
+          </td>
+          <td class="py-3 px-3 align-top">
+            <input
+              type="text"
+              value="${item.infoLink}"
+              oninput="updateInfoLink(${item.id}, this.value)"
+              placeholder="정보연결 입력"
+              class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+            />
+          </td>
+        </tr>
+      `).join('');
+
+      // 전체 선택 체크박스 업데이트
+      const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+      selectAllCheckbox.checked = state.selectedRows.length === state.infoList.length && state.infoList.length > 0;
+
+      // 행삭제 버튼 상태
+      const deleteBtn = document.getElementById('deleteRowBtn');
+      if (state.selectedRows.length > 0) {
+        deleteBtn.disabled = false;
+        deleteBtn.className = 'px-3 py-1.5 border border-red-500 text-red-500 rounded text-xs font-medium hover:bg-red-50';
+      } else {
+        deleteBtn.disabled = true;
+        deleteBtn.className = 'px-3 py-1.5 border border-gray-300 text-gray-400 rounded text-xs font-medium';
+      }
+    }
+
+    // 정보분류 드롭다운
+    function showCategoryDropdown(rowId, inputElement) {
+      state.categoryDropdown.rowId = rowId;
+      state.categoryDropdown.search = '';
+      
+      const rect = inputElement.getBoundingClientRect();
+      const dropdown = document.getElementById('categoryDropdown');
+      dropdown.style.top = `${rect.bottom + window.scrollY}px`;
+      dropdown.style.left = `${rect.left + window.scrollX}px`;
+      dropdown.style.width = `${rect.width}px`;
+      
+      renderCategoryDropdown();
+      dropdown.classList.remove('hidden');
+    }
+
+    function onCategorySearch(rowId, value) {
+      state.categoryDropdown.search = value;
+      if (state.categoryDropdown.rowId === rowId) {
+        renderCategoryDropdown();
+      }
+    }
+
+    function renderCategoryDropdown() {
+      const search = state.categoryDropdown.search.toLowerCase();
+      const filtered = state.categoryList.filter(c =>
+        c.code.toLowerCase().includes(search) ||
+        c.name.toLowerCase().includes(search)
+      );
+
+      const dropdown = document.getElementById('categoryDropdown');
+      dropdown.innerHTML = filtered.map(c => `
+        <div
+          onclick="selectCategory(${state.categoryDropdown.rowId}, '${c.code}', '${c.name}')"
+          class="px-2 py-1.5 hover:bg-blue-50 cursor-pointer text-xs border-b border-gray-100 last:border-b-0"
+        >
+          <span class="text-gray-500 font-mono">${c.code}</span>
+          <span class="mx-1 text-gray-300">-</span>
+          <span class="text-gray-800">${c.name}</span>
+        </div>
+      `).join('');
+    }
+
+    function selectCategory(rowId, code, name) {
+      const item = state.infoList.find(i => i.id === rowId);
+      if (item) {
+        item.categoryCode = code;
+        item.categoryName = name;
+        renderInfoTable();
+      }
+      document.getElementById('categoryDropdown').classList.add('hidden');
+    }
+
+    // 전역 클릭으로 드롭다운 닫기
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('categoryDropdown');
+      const isInput = e.target.id && e.target.id.startsWith('category-');
+      if (!dropdown.contains(e.target) && !isInput) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    // 이미지 업로드
+    function uploadImage(rowId, input) {
+      const file = input.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const item = state.infoList.find(i => i.id === rowId);
+          if (item) {
+            item.image = e.target.result;
+            item.imageName = file.name;
+            renderInfoTable();
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function deleteImage(rowId) {
+      const item = state.infoList.find(i => i.id === rowId);
+      if (item) {
+        item.image = null;
+        item.imageName = '';
+        renderInfoTable();
+      }
+    }
+
+    // 필드 업데이트
+    function updateDescription(rowId, value) {
+      const item = state.infoList.find(i => i.id === rowId);
+      if (item) item.description = value;
+    }
+
+    function updateInfoLink(rowId, value) {
+      const item = state.infoList.find(i => i.id === rowId);
+      if (item) item.infoLink = value;
+    }
+
+    // 저장/초기화
+    function saveData() {
+      if (!state.selectedMaterial) {
+        alert('자재를 먼저 선택하세요.');
+        return;
+      }
+      alert('저장되었습니다.');
+    }
+
+    function resetForm() {
+      if (confirm('입력한 내용이 초기화됩니다. 계속하시겠습니까?')) {
+        state.selectedMaterial = null;
+        state.infoList = [];
+        state.selectedRows = [];
+        
+        document.getElementById('selectedMaterialDisplay').value = '';
+        document.getElementById('emptyState').classList.remove('hidden');
+        document.getElementById('basicInfoSection').classList.add('hidden');
+        document.getElementById('infoListSection').classList.add('hidden');
+        
+        const copyBtn = document.getElementById('copyToBtn');
+        copyBtn.disabled = true;
+        copyBtn.className = 'px-4 py-2 border border-gray-200 text-gray-400 rounded text-sm font-medium';
+        
+        addRow();
+      }
+    }
+
+    // 초기화
+    init();
+  </script>
+</body>
+</html>
